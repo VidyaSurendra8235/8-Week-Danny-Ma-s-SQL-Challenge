@@ -21,7 +21,7 @@ SELECT 2::INTEGER AS pizza_id, 10::INTEGER AS amount;
     ELSE extras END AS extras
   FROM pizza_runner.customer_orders;
 ```
-4. The Pizza Runner team now wants to add an additional ratings system that allows customers to rate their runner, how would you design an additional table for this new dataset generate a schema for this new table and insert your own data for ratings for each successful customer order between 1 to 5.
+3. The Pizza Runner team now wants to add an additional ratings system that allows customers to rate their runner, how would you design an additional table for this new dataset generate a schema for this new table and insert your own data for ratings for each successful customer order between 1 to 5.
 ```sql
 SELECT SETSEED(1);
 
@@ -39,14 +39,21 @@ FROM pizza_runner.runner_orders
 WHERE pickup_time IS NOT NULL;
 ```
 
-5. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras and each runner is paid $0.30 per kilometre traveled - how much money does Pizza Runner have left over after these deliveries?
+4. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras and each runner is paid $0.30 per kilometre traveled - how much money does Pizza Runner have left over after these deliveries?
 ```sql
-SELECT SUM(amount) AS revenue, 
-SUM(distance_km::FLOAT*0.30) AS delivery_cost,
-SUM(amount - (distance_km::FLOAT*0.30)) AS gross_profit
-FROM customer_orders
-LEFT JOIN pizza_costs USING (pizza_id)
-LEFT JOIN deliveries USING (order_id)
-WHERE cancellation = 0;
+with temp_amt as(SELECT c.order_id, 
+                 c.customer_id, 
+                 c.pizza_id, 
+                 c.exclusions, 
+                 c.extras, 
+                 c.order_time, 
+                 TRIM(SPLIT_PART(o.distance,'km',1))::FLOAT as new_distance,
+CASE WHEN c.pizza_id = 1 then 12 else 10 end as amount
+FROM pizza_runner.customer_orders c join pizza_runner.runner_orders o
+on c.order_id=o.order_id
+where o.distance !='null')
+select sum(amount - new_distance * 0.3) as revenue 
+from temp_amt;
+
 ```
 ***
