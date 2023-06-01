@@ -153,31 +153,34 @@ Question is asking for number and percentage of customers who converted to becom
 - Filter for `plan_id = 0` as every customer has to start from the trial plan at 0.
 
 ````sql
--- To retrieve next plan's start date located in the next row based on current row
-WITH next_plan_cte AS (
-SELECT 
-  customer_id, 
-  plan_id, 
-  LEAD(plan_id, 1) OVER( -- Offset by 1 to retrieve the immediate row's value below 
-    PARTITION BY customer_id 
-    ORDER BY plan_id) as next_plan
-FROM foodie_fi.subscriptions)
+WITH temp_table as(SELECT customer_id, plan_id, 
+            lag(plan_id,1) over(partition by customer_id order by customer_id asc) as lag_planid
+from foodie_fi.subscriptions
+),
+table1 as(select customer_id, CASE WHEN lag_planid=0 then plan_id else 0 end as new_planid
+from temp_table
+group by customer_id,2
+order by customer_id asc ),
 
-SELECT 
-  next_plan, 
-  COUNT(*) AS conversions,
-  ROUND(100 * COUNT(*)::NUMERIC / (
-    SELECT COUNT(DISTINCT customer_id) 
-    FROM foodie_fi.subscriptions),1) AS conversion_percentage
-FROM next_plan_cte
-WHERE next_plan IS NOT NULL 
-  AND plan_id = 0
-GROUP BY next_plan
-ORDER BY next_plan;
+/*SELECT * from table1;*/
+table2 as(SELECT new_planid,COUNT(customer_id) as count_cust
+from table1
+where new_planid != 0
+group by new_planid
+order by new_planid asc)
+
+SELECT t.new_planid, p.plan_name, t.count_cust,
+ROUND(100.0 * t.count_cust/ (SELECT COUNT(DISTINCT customer_id) FROM foodie_fi.subscriptions),1)as percentage
+FROM table2 t join foodie_fi.plans p
+on t.new_planid=p.plan_id
+group by t.new_planid,2,3
+order by 1 asc
+;
 ````
 **Answer:**
 
-<img width="589" alt="image" src="https://user-images.githubusercontent.com/81607668/129843509-2cfb76ed-82cc-4291-a59f-a854580a115e.png">
+![image](https://github.com/VidyaSurendra8235/6-Week-SQL-Challenge/assets/107226432/02830ffa-281b-45fa-9750-293ff8520476)
+
 
 - More than 80% of customers are on paid plans with small 3.7% on plan 3 (pro annual $199). Foodie-Fi has to strategize on their customer acquisition who would be willing to spend more.
 
