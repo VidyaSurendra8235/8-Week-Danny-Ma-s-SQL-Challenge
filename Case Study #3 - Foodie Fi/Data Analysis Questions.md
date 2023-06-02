@@ -236,28 +236,29 @@ WHERE plan_id = 3
 ### 9. How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?
 
 ````sql
--- Filter results to customers at trial plan = 0
-WITH trial_plan AS 
-(SELECT 
-  customer_id, 
-  start_date AS trial_date
-FROM foodie_fi.subscriptions
-WHERE plan_id = 0
+WITH tempp as(SELECT customer_id, plan_id, start_date, 
+            lag(plan_id,1) over(partition by customer_id order by plan_id asc) as next_planid
+			from foodie_fi.subscriptions
 ),
--- Filter results to customers at pro annual plan = 3
-annual_plan AS
-(SELECT 
-  customer_id, 
-  start_date AS annual_date
-FROM foodie_fi.subscriptions
-WHERE plan_id = 3
-)
-
-SELECT 
-  ROUND(AVG(annual_date - trial_date),0) AS avg_days_to_upgrade
-FROM trial_plan tp
-JOIN annual_plan ap
-  ON tp.customer_id = ap.customer_id;
+tempp2 AS(select customer_id, plan_id, start_date, next_planid, 
+          row_number() over(partition by customer_id order by next_planid desc) row_num
+          from tempp
+          where plan_id != 4
+         group by 1,2,3,4
+         order by 1,2 asc),
+temp3 as (select customer_id, count(plan_id) as count_plans
+		from tempp2
+		group by 1
+		having count(plan_id) >= 2 and max(plan_id) = 3
+		order by 1 asc),
+temp4 as (SELECT tt.customer_id, te.start_date
+		from tempp2 te join temp3 tt
+		on te.customer_id=tt.customer_id
+		group by 1,2
+		order by 1,2 asc),
+tempy5 as (SELECT customer_id, MAX(start_date), MIN(start_date), MAX(start_date)-MIN(start_date) as days FROM temp4
+		group by customer_id)
+SELECT CEIL(AVG(days)) as avg_days from tempy5;
 ````
 
 **Answer:**
