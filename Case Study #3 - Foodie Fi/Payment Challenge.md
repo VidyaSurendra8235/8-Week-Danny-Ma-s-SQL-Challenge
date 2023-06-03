@@ -13,8 +13,7 @@ DATE DEFAULT '2020-12-31';
 
 
 with cte as(
-  	SELECT 
-  		   customer_id, 
+  	SELECT customer_id, 
   		   plan_id,
            start_date, 
            end_date,
@@ -24,8 +23,7 @@ with cte as(
            where extract ('year' from start_date) = 2020),
 
 temp as(
-  	SELECT 
-  			c.customer_id, 
+  	SELECT c.customer_id, 
   			c.plan_id, 
   			p.plan_name, 
   			c.start_date,
@@ -45,8 +43,7 @@ temp as(
             p.plan_name asc),
 
  temp_table as( 
-  SELECT 
-  			customer_id, 
+  SELECT    customer_id, 
   			plan_id, 
   			plan_name, 
   			start_date, 
@@ -77,7 +74,7 @@ join_table as
      	plan_name, 
      	start_date, price FROM temp_table
 UNION
-SELECT 
+   SELECT 
      	customer_id, 
      	plan_id, 
      	plan_name, 
@@ -109,3 +106,5 @@ table1 as(
      FROM table2;
    
 ```
+## OUTPUT
+![image](https://github.com/VidyaSurendra8235/6-Week-SQL-Challenge/assets/107226432/77c75549-6fad-4e50-846b-e91489911635)
